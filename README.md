@@ -7,10 +7,14 @@ Your application must be able to accept and store (i.e., persist) a purchase tra
 date, and a purchase amount in United States dollars. When the transaction is stored, it will be assigned a unique
 identifier.
 
-Field requirements
+**Field requirements :**
+
 ● Description: must not exceed 50 characters
+
 ● Transaction date: must be a valid date format
+
 ● Purchase amount: must be a valid positive amount rounded to the nearest cent
+
 ● Unique identifier: must uniquely identify the purchase
 
 ### Requirement #2: Retrieve a Purchase Transaction in a Specified Country’s Currency
@@ -22,18 +26,21 @@ The retrieved purchase should include the identifier, the description, the trans
 amount, the exchange rate used, and the converted amount based upon the specified currency’s exchange rate for the
 date of the purchase.
 
-Currency conversion requirements
+**Currency conversion requirements :**
+
 ● When converting between currencies, you do not need an exact date match, but must use a currency conversion
 rate less than or equal to the purchase date from within the last 6 months.
+
 ● If no currency conversion rate is available within 6 months equal to or before the purchase date, an error should
 be returned stating the purchase cannot be converted to the target currency.  
+
 ● The converted purchase amount to the target currency should be rounded to two decimal places (i.e., cent).
 
 ## Build the app
 mvn clean install
 
 ## Run the app
-docker-compose up --build
+docker compose up --build
 
 ## API
 
@@ -47,3 +54,6 @@ POST /purchases
 
 ### Convert Currency
 GET /purchases/{id}/convert?currency=Euro&country=Euro Zone
+
+### Swagger UI
+http://localhost:8080/swagger-ui/index.html
