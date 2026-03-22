@@ -47,6 +47,3 @@ POST /purchases
 
 ### Convert Currency
 GET /purchases/{id}/convert?currency=Euro&country=Euro Zone
-
-### Swagger UI
-http://localhost:8080/swagger-ui/index.html
