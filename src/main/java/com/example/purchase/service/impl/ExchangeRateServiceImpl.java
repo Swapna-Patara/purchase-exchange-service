@@ -63,7 +63,7 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
         final int MAX_ITERATIONS = props.getMaxIterations(); // Safety limit to prevent infinite loop
 
         while (currentPage <= MAX_ITERATIONS) { // Safety limit to prevent infinite loop
-            TreasuryResponse response = fetchTreasuryData(country, currency, currentPage);
+            TreasuryResponse response = fetchTreasuryData(country, currency, currentPage, purchaseDate);
 
             if (isEmptyResponse(response)) {
                 return null;
@@ -105,8 +105,8 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
     /**
      * Fetches exchange rate data from Treasury API for a specific page.
      */
-    private TreasuryResponse fetchTreasuryData(String country, String currency, int page) {
-        URI uri = buildTreasuryApiUri(country, currency, page);
+    private TreasuryResponse fetchTreasuryData(String country, String currency, int page, LocalDate purchaseDate) {
+        URI uri = buildTreasuryApiUri(country, currency, page, purchaseDate);
         logger.info("Fetching data from: {}", uri);
 
         ResponseEntity<TreasuryResponse> response = restTemplate.getForEntity(uri, TreasuryResponse.class);
@@ -116,9 +116,9 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
     /**
      * Builds the URI for Treasury API with query parameters.
      */
-    private URI buildTreasuryApiUri(String country, String currency, int page) {
+    private URI buildTreasuryApiUri(String country, String currency, int page, LocalDate purchaseDate) {
         return UriComponentsBuilder.fromUriString(props.getBaseUrl())
-                .queryParam("filter", String.format("country:eq:%s,currency:eq:%s", country, currency))
+                .queryParam("filter", String.format("country:eq:%s,currency:eq:%s,record_date:lt:%s", country, currency, purchaseDate))
                 .queryParam("sort", "-record_date")
                 .queryParam("page[size]", props.getPageSize())
                 .queryParam("page[number]", page)
