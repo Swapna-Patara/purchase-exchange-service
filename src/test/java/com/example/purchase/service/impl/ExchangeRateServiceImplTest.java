@@ -33,7 +33,6 @@ class ExchangeRateServiceImplTest {
         // Provide configuration
         when(props.getMaxMonths()).thenReturn(6);
         when(props.getPageSize()).thenReturn(50);
-        when(props.getMaxIterations()).thenReturn(5);
         when(props.getBaseUrl()).thenReturn("http://example.com/api");
 
         service = new ExchangeRateServiceImpl(restTemplate, props);
