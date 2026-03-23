@@ -15,7 +15,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.List;
 
 
@@ -59,11 +58,7 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
      * Searches for exchange rate by paginating through Treasury API responses.
      */
     private BigDecimal searchExchangeRate(String country, String currency, LocalDate purchaseDate, LocalDate cutoffDate) {
-        int currentPage = 1;
-        final int MAX_ITERATIONS = props.getMaxIterations(); // Safety limit to prevent infinite loop
-
-        while (currentPage <= MAX_ITERATIONS) { // Safety limit to prevent infinite loop
-            TreasuryResponse response = fetchTreasuryData(country, currency, currentPage, purchaseDate);
+            TreasuryResponse response = fetchTreasuryData(country, currency, purchaseDate);
 
             if (isEmptyResponse(response)) {
                 return null;
@@ -71,27 +66,16 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
 
             List<TreasuryData> rates = response.getData();
 
-            // Try to find the best matching rate within the valid date range
-            BigDecimal exchangeRate = findBestMatchingRate(rates, purchaseDate, cutoffDate);
-            if (exchangeRate != null) {
-                return exchangeRate;
+            // API is configured to return only one record (page[size]=1),
+            // explicitly check that single record's date is within the valid range.
+            if (rates.size() == 1) {
+                TreasuryData single = rates.get(0);
+                LocalDate rateDate = LocalDate.parse(single.getRecordDate());
+                if (isWithinValidDateRange(rateDate, purchaseDate, cutoffDate)) {
+                    return mapToRate(single).exchangeRate;
+                }
             }
-
-            // Stop pagination if oldest record is beyond cutoff date
-            if (shouldStopPagination(rates, cutoffDate)) {
-                return null;
-            }
-
-            // Check if there's a next page
-            if (!hasNextPage(response)) {
-                logger.info("No more pages");
-                return null;
-            }
-
-            currentPage++;
-        }
-
-        return null;
+            return null;
     }
 
 
@@ -105,8 +89,8 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
     /**
      * Fetches exchange rate data from Treasury API for a specific page.
      */
-    private TreasuryResponse fetchTreasuryData(String country, String currency, int page, LocalDate purchaseDate) {
-        URI uri = buildTreasuryApiUri(country, currency, page, purchaseDate);
+    private TreasuryResponse fetchTreasuryData(String country, String currency, LocalDate purchaseDate) {
+        URI uri = buildTreasuryApiUri(country, currency, purchaseDate);
         logger.info("Fetching data from: {}", uri);
 
         ResponseEntity<TreasuryResponse> response = restTemplate.getForEntity(uri, TreasuryResponse.class);
@@ -116,12 +100,11 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
     /**
      * Builds the URI for Treasury API with query parameters.
      */
-    private URI buildTreasuryApiUri(String country, String currency, int page, LocalDate purchaseDate) {
+    private URI buildTreasuryApiUri(String country, String currency, LocalDate purchaseDate) {
         return UriComponentsBuilder.fromUriString(props.getBaseUrl())
                 .queryParam("filter", String.format("country:eq:%s,currency:eq:%s,record_date:lte:%s", country, currency, purchaseDate))
                 .queryParam("sort", "-record_date")
                 .queryParam("page[size]", props.getPageSize())
-                .queryParam("page[number]", page)
                 .build()
                 .toUri();
     }
@@ -133,19 +116,7 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
         return response == null || response.getData() == null || response.getData().isEmpty();
     }
 
-    /**
-     * Finds the best matching exchange rate within the valid date range.
-     * Returns the rate with the most recent date that is not after the purchase date
-     * and not before the cutoff date.
-     */
-    private BigDecimal findBestMatchingRate(List<TreasuryData> rates, LocalDate purchaseDate, LocalDate cutoffDate) {
-        return rates.stream()
-                .map(this::mapToRate)
-                .filter(rate -> isWithinValidDateRange(rate.date, purchaseDate, cutoffDate))
-                .max(Comparator.comparing(rate -> rate.date))
-                .map(rate -> rate.exchangeRate)
-                .orElse(null);
-    }
+
 
     /**
      * Checks if a date is within the valid range (not after purchase date and not before cutoff).
@@ -153,28 +124,7 @@ public class ExchangeRateServiceImpl implements IExchangeRateService {
     private boolean isWithinValidDateRange(LocalDate rateDate, LocalDate purchaseDate, LocalDate cutoffDate) {
         return !rateDate.isAfter(purchaseDate) && !rateDate.isBefore(cutoffDate);
     }
-
-    /**
-     * Determines if pagination should stop based on the oldest record in current page.
-     * Stops if the oldest record is older than the cutoff date.
-     */
-    private boolean shouldStopPagination(List<TreasuryData> rates, LocalDate cutoffDate) {
-        LocalDate oldestDateInPage = rates.stream()
-                .map(rate -> LocalDate.parse(rate.getRecordDate()))
-                .min(LocalDate::compareTo)
-                .orElse(LocalDate.now());
-
-        return oldestDateInPage.isBefore(cutoffDate);
-    }
-
-    /**
-     * Checks if there's a next page available in the response.
-     */
-    private boolean hasNextPage(TreasuryResponse response) {
-        return response != null
-                && response.getLinks() != null
-                && response.getLinks().getNext() != null;
-    }
+    
 
 
     private Rate mapToRate(TreasuryData d) {
