@@ -1,27 +1,27 @@
 spring:
   application:
-    name: purchase
+    name: ${APP_NAME:purchase}
 
   datasource:
-    url: jdbc:postgresql://db:5432/purchases
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://db:5432/purchases}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
 
 app:
   exchange:
-    base-url: https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange
-    page-size: 100
-    max-months: 6
-    max-iterations: 100 #Safety Limit - to prevent infinite loops in case of API issues
+    base-url: ${EXCHANGE_API_URL:https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange}
+    page-size: ${EXCHANGE_PAGE_SIZE:100}
+    max-months: ${EXCHANGE_MAX_MONTHS:6}
+    max-iterations: ${EXCHANGE_MAX_ITERATIONS:100} # Safety Limit - to prevent infinite loops in case of API issues
 
   rest-client:
-    connect-timeout: 5000    # Connection timeout in milliseconds (5 seconds)
-    read-timeout: 10000      # Read timeout in milliseconds (10 seconds)
+    connect-timeout: ${REST_CLIENT_CONNECT_TIMEOUT:5000}    # Connection timeout in milliseconds (5 seconds)
+    read-timeout: ${REST_CLIENT_READ_TIMEOUT:10000}         # Read timeout in milliseconds (10 seconds)
 
 
 springdoc:
