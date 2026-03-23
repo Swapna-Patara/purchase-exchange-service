@@ -40,7 +40,20 @@ be returned stating the purchase cannot be converted to the target currency.
 mvn clean install
 
 ## Run the app
-docker compose up --build
+### Local - Run the application using an environment file:
+docker compose --env-file opt/config/purchase.env up
+
+### Higher environments / Production : 
+For production deployments, environment variables and secrets should not be stored in local files.
+
+Instead, use managed configuration and secrets services:
+
+● Store non-sensitive configuration in AWS AppConfig
+
+● Store sensitive values (e.g., database passwords, API keys) in AWS Secrets Manager
+
+● Monitoring : AWS CloudWatch / Datadog
+
 
 ## API
 
